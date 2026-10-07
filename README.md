@@ -26,9 +26,8 @@ On the machine that runs T3 Code, ask your coding agent (Codex, Claude Code, or 
 
 > Help me set up https://github.com/eimexdev/T3mcp in my ChatGPT.
 
-It follows [docs/agent-setup.md](docs/agent-setup.md). It does the terminal work
-and asks you for the few ChatGPT and OpenAI Platform clicks it cannot do. The rest
-of this README is the same process by hand.
+It follows [docs/agent-setup.md](docs/agent-setup.md) and asks you for the few
+ChatGPT and Platform clicks. The rest of this README is the same process by hand.
 
 ## What you are granting
 
@@ -157,7 +156,7 @@ Developers** plugin it can also create the runtime API key, and with **Plugin
 Management** it can set T3 Code's ChatGPT permission. These steps stay with you:
 creating the tunnel, adding the custom MCP server, downloading the plugin ZIP and
 uploading the new version, and enabling the plugin for your Dot. Details and
-exact commands: [docs/agent-setup.md](docs/agent-setup.md).
+commands: [docs/agent-setup.md](docs/agent-setup.md).
 
 ## Day to day
 
