@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// Packages plugin/t3-code as a ChatGPT plugin archive in dist/.
+// Packages plugin/t3-code as a ChatGPT plugin archive in dist/, plus the
+// skill on its own for ChatGPT's skill import.
 //
 // The archive carries the skill, icon, and metadata. It deliberately has no
 // mcp.json: ChatGPT marks imported plugins that declare MCP servers as
@@ -54,5 +55,11 @@ fs.mkdirSync(dist, { recursive: true });
 const archive = path.join(dist, `t3-code-${manifest.version}${values["app-id"] ? "" : "-skills"}.zip`);
 fs.rmSync(archive, { force: true });
 execFileSync("zip", ["-qr", "-X", archive, "t3-code"], { cwd: work });
+
+// The skill alone, for ChatGPT's skill import (a zip with one SKILL.md).
+const skillArchive = path.join(dist, `t3-code-skill-${manifest.version}.zip`);
+fs.rmSync(skillArchive, { force: true });
+execFileSync("zip", ["-qr", "-X", skillArchive, "t3-code"], { cwd: path.join(staged, "skills") });
 fs.rmSync(work, { recursive: true, force: true });
 console.log(archive);
+console.log(skillArchive);

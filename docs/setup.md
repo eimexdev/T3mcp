@@ -147,7 +147,7 @@ The plugin has two parts:
   imported plugins that declare MCP servers in `mcp.json` as **Desktop only**, which a
   Dot could not use. So the connection is created once in the UI.
 - **The guidance:** `plugin/t3-code` in this repository contains the **T3 Code** skill
-  (how to orient, launch safely, wait, read, follow up, and stop), recipes, the icon,
+  (explicit IDs, safe launches, bounded waits, retry-safe sends), the icon,
   and listing metadata. `scripts/build-plugin.mjs` packages it into `dist/`.
 
 Steps, while the service is running:

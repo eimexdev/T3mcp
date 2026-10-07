@@ -69,7 +69,7 @@ for each Platform and ChatGPT step and the prompts for the first Dot test.
 | `doctor` | `tunnel-client doctor --explain` on the profile. |
 | `service install\|uninstall\|start\|stop\|restart\|status\|logs` | Manage `t3mcp-tunnel.service` and `t3mcp-expiry-check.timer`. |
 | `status [--json]` | Credential expiry and acceptance, tunnel service, `/healthz` and `/readyz`. |
-| `scripts/build-plugin.mjs [--app-id ID]` | Package the T3 Code plugin (skill, recipes, icon, metadata) into `dist/`. |
+| `scripts/build-plugin.mjs [--app-id ID]` | Package the T3 Code plugin (skill, icon, metadata) and the skill alone into `dist/`. |
 
 ## Files outside the repository
 
