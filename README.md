@@ -50,7 +50,7 @@ API credits are not needed: in testing, ChatGPT's calls through the tunnel worke
 | 5 | Configure and start the tunnel service | Codex or any terminal agent |
 | 6 | Add the custom MCP server in ChatGPT | **You** |
 | 7 | Set ChatGPT's permission for the plugin (optional) | Codex with Plugin Management, or you |
-| 8 | Import the T3 Code skill (optional) | **You** |
+| 8 | Add the T3 Code skill and icon (optional) | Codex builds it; **you** download and upload in ChatGPT |
 | 9 | Enable the plugin for your Dot and try it | **You** |
 
 ### Why some steps are manual
@@ -63,8 +63,9 @@ API credits are not needed: in testing, ChatGPT's calls through the tunnel worke
   portable `mcp.json` only takes a URL. ChatGPT also marks imported plugins that
   declare MCP servers as **Desktop only**, which a Dot cannot use. Use
   **Add custom MCP server** in ChatGPT.
-- **Enabling for a Dot and importing skills** are ChatGPT UI actions that no
-  available tool performs.
+- **Enabling for a Dot and uploading plugin versions** are ChatGPT UI actions that no
+  available tool performs. Plugin Creator's tools do not list plugins created with
+  **Add custom MCP server**.
 
 ## Install
 
@@ -128,9 +129,13 @@ running. ChatGPT sends no credential; tunnel-client adds T3's on your machine.
 - **Permissions:** by default ChatGPT asks before most write actions. For unattended
   Dot use, set T3 Code's app-specific permission to **Allow all actions** in the
   plugin's settings, or have Codex do it.
-- **Skill:** run `scripts/build-plugin.mjs`, then in ChatGPT's Skills settings choose
-  **Import** and select `dist/t3-code-skill-<version>.zip`. It is a short guide to
-  launching safely and waiting with bounded calls as an outside T3 client.
+- **Skill and icon:** on the plugin's page in ChatGPT, open **⋯ → Download plugin ZIP**,
+  then run `scripts/build-plugin.mjs --base <downloaded.zip>` and upload
+  `dist/t3-code-plugin-<version>.zip` with **⋯ → Upload new version**. This adds the
+  T3 Code skill (a short guide to launching safely and waiting with bounded calls as
+  an outside client), the icon, and listing text. The plugin's name and tunnel-app
+  binding are kept. The downloaded zip looks empty in most file browsers because its
+  files (`.app.json`, `.codex-plugin/`) are hidden.
 - **Dot:** enable T3 Code for your Dot, then try: *"Use T3 Code to list my T3 projects."*
 
 More detail: [docs/setup.md](docs/setup.md).

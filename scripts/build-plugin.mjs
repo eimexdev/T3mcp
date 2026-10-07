@@ -6,10 +6,13 @@
 // mcp.json: ChatGPT marks imported plugins that declare MCP servers as
 // Desktop only, and a portable mcp.json cannot express a Secure MCP Tunnel
 // connection anyway. The tunnel-backed connection is the custom MCP app made
-// with "Add custom MCP server"; pass its app ID with --app-id to reference it
-// from .app.json, or overlay this archive onto that app's own plugin.
+// with "Add custom MCP server". Either:
+//   --base <plugin.zip>  overlay onto that plugin's own package, downloaded with
+//                        "Download plugin ZIP", keeping its name and .app.json
+//                        binding; upload the result with "Upload new version".
+//   --app-id <id>        reference the app from a new plugin's .app.json.
 //
-// Usage: scripts/build-plugin.mjs [--app-id <app id>] [--version <semver>]
+// Usage: scripts/build-plugin.mjs [--base <plugin.zip> | --app-id <app id>] [--version <semver>]
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -20,7 +23,7 @@ import { parseArgs } from "node:util";
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const source = path.join(repoRoot, "plugin", "t3-code");
 const { values } = parseArgs({
-  options: { "app-id": { type: "string" }, version: { type: "string" } },
+  options: { "app-id": { type: "string" }, base: { type: "string" }, version: { type: "string" } },
 });
 
 const work = fs.mkdtempSync(path.join(os.tmpdir(), "t3-code-plugin-"));
@@ -52,6 +55,13 @@ for (const skill of fs.readdirSync(path.join(staged, "skills"))) {
 
 const dist = path.join(repoRoot, "dist");
 fs.mkdirSync(dist, { recursive: true });
+
+if (values.base) {
+  console.log(overlayOntoBase(values.base));
+  fs.rmSync(work, { recursive: true, force: true });
+  process.exit(0);
+}
+
 const archive = path.join(dist, `t3-code-${manifest.version}${values["app-id"] ? "" : "-skills"}.zip`);
 fs.rmSync(archive, { force: true });
 execFileSync("zip", ["-qr", "-X", archive, "t3-code"], { cwd: work });
@@ -63,3 +73,53 @@ execFileSync("zip", ["-qr", "-X", skillArchive, "t3-code"], { cwd: path.join(sta
 fs.rmSync(work, { recursive: true, force: true });
 console.log(archive);
 console.log(skillArchive);
+
+/**
+ * Overlays the skill, icon, and listing onto a ChatGPT-generated plugin
+ * package. Its `name` and app binding identify the tunnel-backed custom MCP
+ * app, so both are kept; the version is bumped for "Upload new version".
+ */
+function overlayOntoBase(baseZip) {
+  const baseDir = path.join(work, "base");
+  fs.mkdirSync(baseDir);
+  execFileSync("unzip", ["-q", path.resolve(baseZip), "-d", baseDir]);
+  const rootPath = path.join(baseDir, "plugin.json");
+  const legacyPath = path.join(baseDir, ".codex-plugin", "plugin.json");
+  const base = JSON.parse(fs.readFileSync(fs.existsSync(rootPath) ? rootPath : legacyPath, "utf8"));
+  const apps = base.extensions?.["com.openai"]?.apps ?? base.apps;
+  if (!base.name || !apps) throw new Error(`${baseZip} has no plugin name or app binding to keep.`);
+  if (fs.existsSync(path.join(baseDir, "mcp.json")) || fs.existsSync(path.join(baseDir, ".mcp.json"))) {
+    throw new Error(`${baseZip} declares MCP servers; uploading it would make the plugin Desktop only.`);
+  }
+
+  const [major, minor] = (base.version ?? "1.0.0").split(".").map(Number);
+  const version = values.version ?? `${major}.${minor + 1}.0`;
+  const interfaceFields = manifest.extensions["com.openai"].interface;
+  const common = {
+    name: base.name,
+    version,
+    description: manifest.description,
+    author: manifest.author,
+    homepage: manifest.homepage,
+    license: manifest.license,
+    keywords: manifest.keywords,
+  };
+  fs.cpSync(path.join(staged, "skills"), path.join(baseDir, "skills"), { recursive: true });
+  fs.cpSync(path.join(staged, "assets"), path.join(baseDir, "assets"), { recursive: true });
+  const write = (file, value) => {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`);
+  };
+  write(rootPath, {
+    $schema: manifest.$schema,
+    ...common,
+    extensions: { "com.openai": { apps, interface: interfaceFields } },
+  });
+  // ChatGPT generated this compatibility manifest; keep it in sync.
+  write(legacyPath, { ...common, apps, skills: "./skills/", interface: interfaceFields });
+
+  const archive = path.join(dist, `t3-code-plugin-${version}.zip`);
+  fs.rmSync(archive, { force: true });
+  execFileSync("zip", ["-qr", "-X", archive, "."], { cwd: baseDir });
+  return archive;
+}
