@@ -52,8 +52,9 @@ t3mcp service install                   # systemd: tunnel + daily expiry check
 t3mcp status
 ```
 
-Then create the plugin in ChatGPT; see [docs/setup.md](docs/setup.md) for each
-Platform and ChatGPT step and the prompts for the first Dot test.
+Then create the tunnel connection in ChatGPT and add the **T3 Code** skill package
+(`plugin/t3-code`, built by `scripts/build-plugin.mjs`). See [docs/setup.md](docs/setup.md)
+for each Platform and ChatGPT step and the prompts for the first Dot test.
 
 ## Commands
 
@@ -68,6 +69,7 @@ Platform and ChatGPT step and the prompts for the first Dot test.
 | `doctor` | `tunnel-client doctor --explain` on the profile. |
 | `service install\|uninstall\|start\|stop\|restart\|status\|logs` | Manage `t3mcp-tunnel.service` and `t3mcp-expiry-check.timer`. |
 | `status [--json]` | Credential expiry and acceptance, tunnel service, `/healthz` and `/readyz`. |
+| `scripts/build-plugin.mjs [--app-id ID]` | Package the T3 Code plugin (skill, recipes, icon, metadata) into `dist/`. |
 
 ## Files outside the repository
 

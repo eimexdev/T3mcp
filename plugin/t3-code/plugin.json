@@ -1,0 +1,29 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "t3-code",
+  "version": "0.1.0",
+  "description": "Launch, follow, steer, and stop T3 Code threads on the owner's main machine through its native MCP tools.",
+  "author": { "name": "Parker Eimerl" },
+  "homepage": "https://github.com/eimexdev/T3mcp",
+  "license": "UNLICENSED",
+  "keywords": ["t3-code", "coding-agents", "mcp", "secure-mcp-tunnel"],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "T3 Code",
+        "shortDescription": "Run T3 Code threads remotely",
+        "longDescription": "Use the native T3 Code MCP tools on your main machine: find projects, launch coding threads in a project, worktree, or scratch folder, wait for and read results, send follow-ups, answer questions, and interrupt runs. Work executes and persists in T3 Code on that machine; the machine must be online.",
+        "developerName": "Parker Eimerl",
+        "category": "Developer Tools",
+        "capabilities": ["Interactive", "Read", "Write"],
+        "defaultPrompt": [
+          "What T3 Code threads are running right now?",
+          "Start a T3 Code thread in my project to fix this bug.",
+          "Check on my last T3 Code thread and summarize the result."
+        ],
+        "logo": "./assets/logo.png",
+        "composerIcon": "./assets/logo.png"
+      }
+    }
+  }
+}

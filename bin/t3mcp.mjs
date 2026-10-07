@@ -14,7 +14,7 @@ import {
   SERVICE_NAME,
   resolvePaths,
 } from "../src/paths.mjs";
-import { ensurePrivateDir, readJsonFile, writeJsonFile, writePrivateFile } from "../src/fsutil.mjs";
+import { ensurePrivateDir, readJsonFile, readPrivateFile, writeJsonFile, writePrivateFile } from "../src/fsutil.mjs";
 import {
   DEFAULT_CLIENT_NAME,
   daysUntil,
@@ -50,6 +50,7 @@ Commands:
       --no-restart                 Do not restart the tunnel service afterwards.
   configure --tunnel-id <id>       Write the tunnel-client profile.
       --runtime-key-stdin          Read the OpenAI tunnel runtime key from stdin.
+      --runtime-key-env-file <f>   Or take it from an env file (CONTROL_PLANE_API_KEY=).
       --t3-url <url>  --health-addr <host:port>
   check [--via-dev-proxy] [--json] Verify the credential against native T3 /mcp,
                                    or through a local tunnel-client dev proxy.
@@ -181,6 +182,7 @@ async function cmdConfigure(argv) {
     options: {
       "tunnel-id": { type: "string" },
       "runtime-key-stdin": { type: "boolean", default: false },
+      "runtime-key-env-file": { type: "string" },
       "t3-url": { type: "string" },
       "health-addr": { type: "string" },
     },
@@ -192,8 +194,17 @@ async function cmdConfigure(argv) {
   const healthAddr = values["health-addr"] ?? current.healthAddr ?? DEFAULT_HEALTH_ADDR;
   ensurePrivateDir(paths.configDir);
 
+  let key;
   if (values["runtime-key-stdin"]) {
-    const key = await readSecretFromStdin("OpenAI tunnel runtime API key (input hidden): ");
+    key = await readSecretFromStdin("OpenAI tunnel runtime API key (input hidden): ");
+  } else if (values["runtime-key-env-file"]) {
+    // An env file such as the one OpenAI Developers' key helper writes.
+    const envFile = values["runtime-key-env-file"];
+    const match = readPrivateFile(envFile).match(/^\s*(?:export\s+)?(?:CONTROL_PLANE_API_KEY|OPENAI_API_KEY)\s*=\s*["']?([^"'\s]+)/m);
+    if (!match) throw new Error(`${envFile} has no CONTROL_PLANE_API_KEY or OPENAI_API_KEY line.`);
+    key = match[1];
+  }
+  if (key !== undefined) {
     if (!/^sk-[\w-]{20,}$/.test(key)) throw new Error("That does not look like an OpenAI API key (sk-...).");
     writePrivateFile(paths.runtimeKeyFile, key);
     log(`Saved the runtime key to ${paths.runtimeKeyFile} (mode 600).`);

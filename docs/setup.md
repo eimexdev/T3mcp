@@ -99,19 +99,24 @@ credential this test is refused, which is correct.
 
 ## 4. Create the tunnel and runtime key (OpenAI Platform)
 
-1. Open **Tunnels** at <https://platform.openai.com/settings/organization/tunnels> and
-   create a tunnel, for example *T3 Code (main machine)*. Scope it to the ChatGPT
-   workspace you will use, or it will not appear in ChatGPT's tunnel picker. Copy
-   its ID (`tunnel_` + 32 hex characters). The ID is not secret.
-2. Create a **runtime API key** at
-   <https://platform.openai.com/settings/organization/api-keys>. You need Tunnels
-   **Read** + **Use** when you create it. Do not use an admin key here.
+1. **Tunnel (Platform UI only).** Open **Tunnels** at <https://platform.openai.com/settings/organization/tunnels>
+   and create a tunnel, for example *T3 Code (main machine)*, in the same organization
+   as the runtime key. Scope it to the ChatGPT account or workspace you will use, or it
+   will not appear in ChatGPT's tunnel picker. Copy its ID (`tunnel_` + 32 hex
+   characters); it is not secret. The tunnel API needs an admin key, and neither
+   regular API keys nor the OpenAI Developers connector can create tunnels.
+2. **Runtime API key.** Either create one at <https://platform.openai.com/settings/organization/api-keys>
+   (you need Tunnels **Read** + **Use**; not an admin key), or let Codex create it with the
+   OpenAI Developers plugin's encrypted flow. Have Codex write it to
+   `~/.config/t3mcp/secrets/runtime.env` as `CONTROL_PLANE_API_KEY=…` (mode 600) and
+   pass `--runtime-key-env-file` below.
 
 ## 5. Configure and start the tunnel service
 
 ```bash
 t3mcp configure --tunnel-id tunnel_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx --runtime-key-stdin
-#   paste the runtime key at the hidden prompt
+#   paste the runtime key at the hidden prompt, or instead:
+#   --runtime-key-env-file ~/.config/t3mcp/secrets/runtime.env
 t3mcp doctor
 t3mcp service install
 t3mcp status
@@ -135,18 +140,31 @@ health/admin UI is at <http://127.0.0.1:8786/ui> (loopback only).
 
 ## 6. Create the ChatGPT plugin and enable it for the Dot
 
-In ChatGPT on the web, while the service is running:
+The plugin has two parts:
 
-1. Open **Plugins**, select **+**, then **Add custom MCP server**.
-2. **Name:** `T3 Code`. Optional description: *Control T3 Code threads on my main machine.*
-3. **Connection:** **Tunnel**. Select the tunnel from step 4 or paste its ID.
-4. **Authentication:** **No authentication**. ChatGPT sends no credential; tunnel-client
-   adds the T3 credential on this machine. T3 still advertises OAuth metadata. If
-   ChatGPT tries to start an OAuth sign-in anyway, stop and see
+- **The connection:** a custom MCP app using **Connection: Tunnel**. An uploaded plugin
+  archive cannot declare this. Portable `mcp.json` only takes a URL, and ChatGPT marks
+  imported plugins that declare MCP servers in `mcp.json` as **Desktop only**, which a
+  Dot could not use. So the connection is created once in the UI.
+- **The guidance:** `plugin/t3-code` in this repository contains the **T3 Code** skill
+  (how to orient, launch safely, wait, read, follow up, and stop), recipes, the icon,
+  and listing metadata. `scripts/build-plugin.mjs` packages it into `dist/`.
+
+Steps, while the service is running:
+
+1. In ChatGPT on the web, open **Plugins**, select **+**, then **Add custom MCP server**.
+   Set **Name** to `T3 Code`, **Connection** to **Tunnel** (select the tunnel from step 4),
+   and **Authentication** to **No authentication**. Confirm the risk warning and
+   select **Create as a plugin**. T3 still advertises OAuth metadata; if ChatGPT tries to
+   start an OAuth sign-in anyway, stop and see
    [troubleshooting](operations.md#chatgpt-tries-to-start-oauth).
-5. Review the risk warning, confirm, and select **Create as a plugin**.
-6. **Install** the plugin. Open the Dot's profile and make sure the plugin is enabled
-   for the account the Dot uses.
+2. Add the guidance to that plugin. Either:
+   - have Codex (Plugin Creator) overlay the archive from `scripts/build-plugin.mjs`
+     onto the new plugin with `update_plugin` and a new version. This keeps one plugin, or
+   - run `scripts/build-plugin.mjs --app-id <the custom MCP app's ID>` and upload the
+     archive with **Upload plugin archive**. The archive references the tunnel app
+     through `.app.json` instead of declaring an MCP server.
+3. **Install** the plugin and make sure it is enabled for the account the Dot uses.
 
 ## 7. Verify from the Dot
 
