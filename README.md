@@ -20,6 +20,16 @@ T3 enforces its own permissions. This repository contains a small setup CLI
 
 > Unofficial. Not affiliated with T3 Tools or OpenAI. Linux with systemd only for now.
 
+## Set up with an agent
+
+On the machine that runs T3 Code, ask your coding agent (Codex, Claude Code, or similar):
+
+> Help me set up https://github.com/eimexdev/T3mcp in my ChatGPT.
+
+It follows [docs/agent-setup.md](docs/agent-setup.md). It does the terminal work
+and asks you for the few ChatGPT and OpenAI Platform clicks it cannot do. The rest
+of this README is the same process by hand.
+
 ## What you are granting
 
 Anyone who can use this ChatGPT plugin can act on your machine through T3, up to the
@@ -140,23 +150,14 @@ running. ChatGPT sends no credential; tunnel-client adds T3's on your machine.
 
 More detail: [docs/setup.md](docs/setup.md).
 
-## Handing steps to Codex
+## What an agent can and cannot do
 
-Codex running on the same machine can do everything except the manual steps above.
-It needs these plugins: **OpenAI Developers** (runtime key), and **Plugin Management**
-for ChatGPT permissions. Example prompts:
-
-- *"In ~/T3mcp, run `bin/t3mcp.mjs install-tunnel-client`, then
-  `bin/t3mcp.mjs auth --approval mint-pairing-code --access full-access`, then
-  `bin/t3mcp.mjs check --via-dev-proxy`."*
-- *"Use the OpenAI Developers plugin's API key flow to create a new key named 'T3mcp
-  tunnel runtime' in my default org and project, no expiry. Write it to
-  `~/.config/t3mcp/secrets/runtime.env` as `CONTROL_PLANE_API_KEY`, using workspace
-  `~/.config/t3mcp/secrets`. Never print it."*
-- *"Run `bin/t3mcp.mjs configure --tunnel-id <id> --runtime-key-env-file ~/.config/t3mcp/secrets/runtime.env`,
-  delete runtime.env, run `bin/t3mcp.mjs service install`, and confirm `bin/t3mcp.mjs status` shows /readyz 200."*
-- *"Set my ChatGPT plugin 'T3 Code' app-specific permission to Allow all actions,
-  using Plugin Management's `update_app_permissions`. Don't change the global default."*
+An agent on this machine can do every terminal step. With Codex's **OpenAI
+Developers** plugin it can also create the runtime API key, and with **Plugin
+Management** it can set T3 Code's ChatGPT permission. These steps stay with you:
+creating the tunnel, adding the custom MCP server, downloading the plugin ZIP and
+uploading the new version, and enabling the plugin for your Dot. Details and
+exact commands: [docs/agent-setup.md](docs/agent-setup.md).
 
 ## Day to day
 
