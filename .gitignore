@@ -1,0 +1,28 @@
+# Runtime configuration and secrets live outside the repository
+# (~/.config/t3mcp). These patterns guard against accidental copies.
+*.secret
+*.key
+*.pem
+*-authorization
+secrets/
+credential.json
+settings.json
+tunnel-client.yaml
+.env
+.env.*
+
+# Logs and local state
+*.log
+*.ndjson
+logs/
+state/
+
+# Downloaded binaries and release evidence
+tunnel-client
+tunnel-client-*/
+*.zip
+SHA256SUMS.txt
+*.sigstore.json
+
+node_modules/
+.DS_Store
