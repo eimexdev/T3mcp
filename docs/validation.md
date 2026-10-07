@@ -47,6 +47,19 @@
 `validate-lifecycle` reported thread and run IDs as `mcp:6749dc62-…` and
 `run:thread:mcp%3A6749dc62-1a82-4c68-ac2a-cd4425d96f3a:ordinal:{1,2,3}`.
 
+## Live setup (2026-10-06, 20:50–21:10 PDT)
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Production credential | Done | Re-approved at `full-access` at the owner's request (T3 session `c3d8b95c-2daa-49a8-a093-8483ab3d5efc`, expires 2026-11-06T03:50Z); the validation credential was revoked. |
+| Runtime API key | Done | Created by a Codex sub-agent through the OpenAI Developers connector's encrypted flow: *T3mcp tunnel runtime*, org Personal (`org-e8Wn7PnRPgnicxfsa5vMDnUA`), Default project, no expiry. Written to the secrets file without being displayed. `GET /v1/models` returned 200. |
+| Tunnel creation | Owner, in Platform UI | `tunnel_6ac5c36ced108191a39a08de9132f4ac` ("t3 code (bb1)"). The tunnel API returns 403 *Please use an admin API key* for regular keys, and the connector has no tunnel tools. |
+| Tunnel/account access | Pass | `t3mcp-tunnel.service` active; tunnel-client fetched tunnel metadata with the runtime key; `/readyz` 200. |
+| ChatGPT connection | Pass | Owner created *T3 Code* (Connection: Tunnel, No authentication) and reported it connected. tunnel-client forwarded `initialize`, `notifications/initialized`, and the follow-up list request on the `main` channel; T3 issued MCP session `0bd4fdc6-cf28-4998-a4cf-d22e1a6b4ce8`. ChatGPT did not demand OAuth. |
+| ChatGPT permission | Set | A Codex sub-agent changed the app-specific setting for *T3 Code* from "Use my default" to **Allow all actions** (`full_access`). The global default is unchanged. |
+| Responses API path | Not run | `insufficient_quota`: the org has no API credits. It failed before the tunnel was used. |
+| Plugin archive with skills | Skipped by owner | Imported plugins that declare `mcp.json` are Desktop only, and Plugin Creator does not list the custom MCP plugin as editable. The skill package remains in `plugin/t3-code`. |
+
 ## Not yet verified (requires the account owner)
 
 These need the OpenAI Platform tunnel, a runtime key, and the ChatGPT plugin UI.
@@ -56,12 +69,6 @@ machine through chat.
 - [ ] Browser approval (`t3mcp auth` without `--approval`). It shares registration,
       PKCE, and code exchange with the tested pairing-code path; only the owner's
       approval page differs.
-- [ ] Platform tunnel access for the account, tunnel created and scoped to the ChatGPT workspace.
-- [ ] `t3mcp-tunnel.service` running against the real control plane, with `/readyz` 200.
-- [ ] ChatGPT accepts **Connection: Tunnel** + **No authentication** for a server that
-      also advertises OAuth metadata (see [troubleshooting](operations.md#chatgpt-tries-to-start-oauth)).
-- [ ] ChatGPT's MCP client initializes before calling tools. T3 rejects sessionless
-      requests, and the hosted tunnel must keep T3's `Mcp-Session-Id`.
 - [ ] A read-only call from the target Dot.
 - [ ] Launch, bounded wait/read, follow-up, and interruption from the Dot (prompts in
       [setup step 7](setup.md#7-verify-from-the-dot)).
