@@ -1,106 +1,202 @@
 # T3mcp
 
-Use the native T3 Code MCP tools from a ChatGPT Dot through a personal plugin
-called **T3 Code**.
+Drive [T3 Code](https://github.com/pingdotgg/t3code) on your own machine from
+ChatGPT, including Dots. You can list projects, launch coding threads, wait for and
+read their results, send follow-ups, and interrupt runs. The work runs and stays in
+T3 Code on your machine.
 
 ```text
-ChatGPT Dot / conversation
-  -> personal plugin "T3 Code" (Connection: Tunnel, No authentication)
-  -> OpenAI Secure MCP Tunnel (hosted)
-  -> stock tunnel-client on this machine (systemd user service, outbound HTTPS only)
-       injects Authorization: Bearer <dedicated T3 MCP credential>
-  -> native T3 Code /mcp on 127.0.0.1:3773
-  -> T3 launches, runs, and persists threads on this machine
+ChatGPT / Dot
+  -> custom MCP plugin "T3 Code"  (Connection: Tunnel, No authentication)
+  -> OpenAI Secure MCP Tunnel     (hosted by OpenAI; nothing inbound on your machine)
+  -> tunnel-client                (official OpenAI daemon, systemd user service)
+       adds Authorization: Bearer <dedicated T3 MCP credential>
+  -> T3 Code's native /mcp        (127.0.0.1)
 ```
 
-This is V1 from [.plans/v1-single-machine.md](.plans/v1-single-machine.md). It adds
-no hosted adapter or proxy, and no Sites, completion events, UI, second machine, or
-offline queue. The repository holds only the helper CLI, configuration templates,
-supervision units, and documentation. Secrets and runtime configuration stay in
-`~/.config/t3mcp`.
+There is no custom server or proxy. ChatGPT sees T3's own MCP tool catalog, and
+T3 enforces its own permissions. This repository contains a small setup CLI
+(`t3mcp`), a systemd unit, an optional ChatGPT skill, and docs.
 
-## What you get
+> Unofficial. Not affiliated with T3 Tools or OpenAI. Linux with systemd only for now.
 
-- The complete native T3 catalog (80 tools on T3 `0.0.46-nightly.20261006.2752`).
-  The ChatGPT plugin sees exactly what T3 serves: names, schemas, and annotations.
-- T3's permission checks are unchanged. The plugin acts as an *external* MCP client
-  with the access ceiling approved for its credential. Tools that act as a calling
-  T3 thread (`delegate_task`, `task_status`, `create_threads`, `request_secret`,
-  preview/device/HTML tools) are listed, but T3 refuses them with
-  `thread_credential_required`. A thread the plugin launches can still use them
-  inside its own run.
-- A dedicated T3 credential, obtained through T3's own OAuth approval flow. It
-  appears in T3's Connections list as **T3 Code (ChatGPT tunnel)** and can be
-  revoked there. It lasts 30 days and T3 issues no refresh token, so renewal
-  repeats the approval (`t3mcp auth`). A daily timer warns 7 days before expiry.
+## What you are granting
 
-## Quick start
+Anyone who can use this ChatGPT plugin can act on your machine through T3, up to the
+access level you approve. At `full-access`, that includes launching agents that edit
+files and run commands. Keep the plugin **personal**, not shared to a workspace,
+and limit Tunnels **Use** permission in your OpenAI organization to yourself. Revoke
+access at any time from T3 → Settings → Connections, or stop the service.
 
-Requirements: Linux with systemd user services, Node.js 22 or newer, a running
-T3 Code server, OpenAI Platform access to Secure MCP Tunnels (Tunnels **Read** + **Use**),
-and permission to add a custom MCP plugin in ChatGPT.
+## Requirements
+
+- Linux with systemd user services and lingering enabled (`sudo loginctl enable-linger $USER`)
+- Node.js 22 or newer, `curl`, `unzip`, `zip`; optionally the GitHub CLI (`gh`) to verify release provenance
+- T3 Code running locally (default `http://127.0.0.1:3773`)
+- An OpenAI Platform organization with Secure MCP Tunnels, where you have Tunnels
+  **Read + Use** (plus **Manage** to create the tunnel)
+- A ChatGPT account that can add custom MCP plugins
+
+API credits are not needed: in testing, ChatGPT's calls through the tunnel worked for an organization with no API credit balance.
+
+## Setup at a glance
+
+| # | Step | Who can do it |
+| --- | --- | --- |
+| 1 | Clone this repo and install tunnel-client | Codex or any terminal agent |
+| 2 | Approve a dedicated T3 MCP credential | Codex (pairing code), or you in the browser |
+| 3 | Create the tunnel in OpenAI Platform | **You** |
+| 4 | Create the tunnel runtime API key | Codex with the OpenAI Developers plugin, or you |
+| 5 | Configure and start the tunnel service | Codex or any terminal agent |
+| 6 | Add the custom MCP server in ChatGPT | **You** |
+| 7 | Set ChatGPT's permission for the plugin (optional) | Codex with Plugin Management, or you |
+| 8 | Import the T3 Code skill (optional) | **You** |
+| 9 | Enable the plugin for your Dot and try it | **You** |
+
+### Why some steps are manual
+
+- **Tunnel creation.** The tunnel API requires an OpenAI *admin* key. Regular API
+  keys get `403 Please use an admin API key`, and the OpenAI Developers connector
+  has no tunnel tools. Creating the tunnel in the Platform UI takes about a minute,
+  and it is safer than handing an agent an admin key.
+- **The ChatGPT connection.** A plugin archive cannot declare a tunnel connection:
+  portable `mcp.json` only takes a URL. ChatGPT also marks imported plugins that
+  declare MCP servers as **Desktop only**, which a Dot cannot use. Use
+  **Add custom MCP server** in ChatGPT.
+- **Enabling for a Dot and importing skills** are ChatGPT UI actions that no
+  available tool performs.
+
+## Install
+
+### 1. Clone and install tunnel-client
 
 ```bash
 git clone https://github.com/eimexdev/T3mcp.git && cd T3mcp
 alias t3mcp="$PWD/bin/t3mcp.mjs"
-
-t3mcp install-tunnel-client             # stock openai/tunnel-client, checksum + provenance verified
-t3mcp auth                              # approve a dedicated T3 MCP credential in your browser
-t3mcp check --via-dev-proxy             # native T3 through tunnel-client, locally
-t3mcp configure --tunnel-id tunnel_... --runtime-key-stdin   # paste the runtime key (hidden)
-t3mcp service install                   # systemd: tunnel + daily expiry check
-t3mcp status
+t3mcp install-tunnel-client     # official release, checksum and provenance verified
 ```
 
-Then create the tunnel connection in ChatGPT and add the **T3 Code** skill package
-(`plugin/t3-code`, built by `scripts/build-plugin.mjs`). See [docs/setup.md](docs/setup.md)
-for each Platform and ChatGPT step and the prompts for the first Dot test.
+### 2. Get a dedicated T3 MCP credential
 
-## Commands
+T3 issues MCP credentials through its own OAuth approval. Pick one method:
 
-| Command | Purpose |
+```bash
+t3mcp auth                                                    # prints a T3 approval URL; choose the access level there
+t3mcp auth --approval mint-pairing-code --access full-access  # terminal-only: the local t3 CLI mints a one-time code
+```
+
+The credential appears in T3 → Settings → Connections as **T3 Code (ChatGPT tunnel)**.
+It is stored at `~/.config/t3mcp/secrets/t3-mcp-authorization` (mode 600) and
+lasts **30 days**; T3 issues no refresh token. Access levels, from least to most:
+`read-only`, `approval-required`, `auto-accept-edits`, `auto`, `full-access`.
+With `approval-required`, launched threads wait for approval in T3's UI, which a Dot
+cannot give.
+
+Check it: `t3mcp check` (direct) and `t3mcp check --via-dev-proxy` (through tunnel-client, locally).
+
+### 3. Create the tunnel (you)
+
+Platform → [Tunnels](https://platform.openai.com/settings/organization/tunnels) → **Create tunnel**.
+Use the same organization as the runtime key, and scope it to the ChatGPT account
+you will use. Copy the ID (`tunnel_…`); it is not a secret.
+
+### 4. Create the runtime API key
+
+Either create a normal (non-admin) key at
+[API keys](https://platform.openai.com/settings/organization/api-keys), or ask Codex
+(see below) to create one with the OpenAI Developers plugin and write it to
+`~/.config/t3mcp/secrets/runtime.env` as `CONTROL_PLANE_API_KEY=…`.
+
+### 5. Configure and start
+
+```bash
+t3mcp configure --tunnel-id tunnel_xxxxxxxx --runtime-key-stdin          # paste the key (hidden)
+#   or: --runtime-key-env-file ~/.config/t3mcp/secrets/runtime.env      (then delete that file)
+t3mcp service install    # t3mcp-tunnel.service + daily credential expiry check
+t3mcp status             # wait for: service active, /readyz 200
+```
+
+### 6. Connect ChatGPT (you)
+
+ChatGPT → **Plugins** → **+** → **Add custom MCP server**: Name `T3 Code`,
+Connection **Tunnel** (select your tunnel), Authentication **No authentication** →
+accept the warning → **Create as a plugin** → **Install**. The service must be
+running. ChatGPT sends no credential; tunnel-client adds T3's on your machine.
+
+### 7–9. Permissions, skill, Dot
+
+- **Permissions:** by default ChatGPT asks before most write actions. For unattended
+  Dot use, set T3 Code's app-specific permission to **Allow all actions** in the
+  plugin's settings, or have Codex do it.
+- **Skill:** run `scripts/build-plugin.mjs`, then in ChatGPT's Skills settings choose
+  **Import** and select `dist/t3-code-skill-<version>.zip`. It is a short guide to
+  launching safely and waiting with bounded calls as an outside T3 client.
+- **Dot:** enable T3 Code for your Dot, then try: *"Use T3 Code to list my T3 projects."*
+
+More detail: [docs/setup.md](docs/setup.md).
+
+## Handing steps to Codex
+
+Codex running on the same machine can do everything except the manual steps above.
+It needs these plugins: **OpenAI Developers** (runtime key), and **Plugin Management**
+for ChatGPT permissions. Example prompts:
+
+- *"In ~/T3mcp, run `bin/t3mcp.mjs install-tunnel-client`, then
+  `bin/t3mcp.mjs auth --approval mint-pairing-code --access full-access`, then
+  `bin/t3mcp.mjs check --via-dev-proxy`."*
+- *"Use the OpenAI Developers plugin's API key flow to create a new key named 'T3mcp
+  tunnel runtime' in my default org and project, no expiry. Write it to
+  `~/.config/t3mcp/secrets/runtime.env` as `CONTROL_PLANE_API_KEY`, using workspace
+  `~/.config/t3mcp/secrets`. Never print it."*
+- *"Run `bin/t3mcp.mjs configure --tunnel-id <id> --runtime-key-env-file ~/.config/t3mcp/secrets/runtime.env`,
+  delete runtime.env, run `bin/t3mcp.mjs service install`, and confirm `bin/t3mcp.mjs status` shows /readyz 200."*
+- *"Set my ChatGPT plugin 'T3 Code' app-specific permission to Allow all actions,
+  using Plugin Management's `update_app_permissions`. Don't change the global default."*
+
+## Day to day
+
+| Task | Command |
 | --- | --- |
-| `install-tunnel-client [vX.Y.Z]` | Download the official release, verify `SHA256SUMS.txt` and signed provenance, install under `~/.local/share/t3mcp`. |
-| `auth` | Register a loopback OAuth client with T3, run PKCE approval, exchange the code, verify the token, and save it as `Bearer <token>` (mode 600). Restarts the tunnel service if it is running. |
-| `configure` | Store the OpenAI tunnel runtime key (stdin, hidden) and write the tunnel-client profile. |
-| `check [--via-dev-proxy]` | Initialize, list tools, and make one read-only call (`t3_project_list`) directly or through tunnel-client's local dev proxy. |
-| `validate-lifecycle [--via-dev-proxy]` | Launch a harmless Scratch thread, wait, read, follow up, and interrupt; records IDs in a launch ledger. |
-| `reconcile` | Resolve launches whose outcome was never recorded, by searching for their unique marker. |
-| `doctor` | `tunnel-client doctor --explain` on the profile. |
-| `service install\|uninstall\|start\|stop\|restart\|status\|logs` | Manage `t3mcp-tunnel.service` and `t3mcp-expiry-check.timer`. |
-| `status [--json]` | Credential expiry and acceptance, tunnel service, `/healthz` and `/readyz`. |
-| `scripts/build-plugin.mjs [--app-id ID]` | Package the T3 Code plugin (skill, icon, metadata) and the skill alone into `dist/`. |
+| Health, expiry, and service status | `t3mcp status` |
+| Renew the T3 credential (every 30 days; a daily timer warns 7 days ahead) | `t3mcp auth --revoke-previous` |
+| Tunnel logs | `t3mcp service logs` |
+| Stop or start the tunnel | `t3mcp service stop` / `t3mcp service start` |
+| Upgrade tunnel-client | `t3mcp install-tunnel-client vX.Y.Z && t3mcp service restart` |
+| Local end-to-end self-test (Scratch thread) | `t3mcp validate-lifecycle --via-dev-proxy --model-json '{"instanceId":"claudeAgent","model":"claude-haiku-4-5"}'` |
 
-## Files outside the repository
+Revocation, key rotation, troubleshooting, and uninstalling: [docs/operations.md](docs/operations.md).
+
+## Good to know
+
+- **Full catalog, native rules.** ChatGPT sees all of T3's tools. Tools that act as a
+  calling T3 thread (`delegate_task`, `create_threads`, `request_secret`, preview,
+  device, and HTML tools) return `thread_credential_required` for an outside client;
+  a launched thread can still use them.
+- **Launches have no retry key.** If a launch times out, look for the thread
+  (`t3_thread_list` / `t3_thread_search`) before launching again.
+- **Bounded waits.** Keep `t3_thread_wait` to about 1–2 minutes and repeat. A wait
+  timing out does not stop the run.
+- **Machine must be on.** If the machine, T3, or the service is down, calls fail and
+  nothing is queued.
+
+## Files
+
+Runtime state stays outside the repository:
 
 | Path | Contents |
 | --- | --- |
-| `~/.config/t3mcp/secrets/t3-mcp-authorization` | `Bearer <T3 MCP token>` (600) |
-| `~/.config/t3mcp/secrets/openai-tunnel-runtime-key` | OpenAI tunnel runtime API key (600) |
-| `~/.config/t3mcp/tunnel-client.yaml` | tunnel-client profile; references the two files above with `file:` |
-| `~/.config/t3mcp/credential.json`, `settings.json` | Non-secret metadata: expiry, session ID, access, tunnel ID |
-| `~/.local/share/t3mcp/` | Verified tunnel-client release |
-| `~/.local/state/t3mcp/launches.jsonl` | Launch ledger from validation runs |
+| `~/.config/t3mcp/secrets/` | T3 bearer and OpenAI runtime key (mode 600) |
+| `~/.config/t3mcp/tunnel-client.yaml` | tunnel-client profile; references the secrets with `file:` |
+| `~/.config/t3mcp/{credential,settings}.json` | Non-secret metadata (expiry, session ID, tunnel ID) |
+| `~/.local/share/t3mcp/` | Verified tunnel-client releases |
 | `~/.config/systemd/user/t3mcp-*` | Generated units; logs go to the user journal |
 
-## Documentation
+## Development
 
-- [docs/setup.md](docs/setup.md): installation, Platform tunnel, ChatGPT plugin, and Dot verification
-- [docs/operations.md](docs/operations.md): renewal, revocation, access levels, upgrades, troubleshooting
-- [docs/validation.md](docs/validation.md): what has been verified, with evidence, and what still needs the account owner
-- [RESEARCH.md](RESEARCH.md) and [.plans/](.plans): the research and phase plans behind this design
+`npm test` runs the unit tests. [docs/validation.md](docs/validation.md) records what
+has been verified against T3 and the live tunnel.
 
-## Using it from a Dot
+## License
 
-- `t3_thread_launch` has **no idempotency key**. Keep the returned `threadId` and
-  `runId`. If a launch response is lost, look for the thread (`t3_thread_search` or
-  `t3_thread_list` with a unique title) before launching again.
-- Use bounded waits, for example `t3_thread_wait` with `timeoutMs` of 30000-120000,
-  then read with `t3_thread_read` (use `afterPosition` for increments). A wait timing
-  out does not stop the run. tunnel-client caps one MCP request at 10 minutes.
-- Use `clientRequestId` on `t3_thread_send` and `t3_thread_interrupt` so retries are safe.
-- Outside a T3 thread, give explicit targets: `projectId` (from `t3_project_list`) or
-  `scratch: true`, plus `modelSelection` when the project has no default model
-  (`orchestrator_capabilities` lists providers and models).
-- If this machine, T3, or the tunnel service is down, calls fail. tunnel-client
-  answers `502 Bad Gateway` when T3 is unreachable. Nothing is queued for later.
+MIT; see [LICENSE](LICENSE). The T3 Code icon in `plugin/t3-code/assets/` comes from
+T3 Code (MIT, © T3 Tools Inc.); see [NOTICE](NOTICE).

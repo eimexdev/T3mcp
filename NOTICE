@@ -1,0 +1,8 @@
+T3mcp is an unofficial project and is not affiliated with T3 Tools Inc. or OpenAI.
+
+plugin/t3-code/assets/logo.png is the T3 Code app icon, from T3 Code
+(https://github.com/pingdotgg/t3code), MIT License, Copyright (c) 2026 T3 Tools Inc.
+"T3 Code" names the product this plugin connects to.
+
+tunnel-client is downloaded at install time from https://github.com/openai/tunnel-client
+(Apache License 2.0) and is not redistributed in this repository.

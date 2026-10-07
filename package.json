@@ -4,7 +4,7 @@
   "private": true,
   "description": "Connect a personal ChatGPT plugin to native T3 Code MCP through OpenAI Secure MCP Tunnel.",
   "type": "module",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "engines": {
     "node": ">=22"
   },
