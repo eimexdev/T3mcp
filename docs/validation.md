@@ -53,6 +53,9 @@ These need the OpenAI Platform tunnel, a runtime key, and the ChatGPT plugin UI.
 None existed when V1 was built, and the runtime key cannot be handed to this
 machine through chat.
 
+- [ ] Browser approval (`t3mcp auth` without `--approval`). It shares registration,
+      PKCE, and code exchange with the tested pairing-code path; only the owner's
+      approval page differs.
 - [ ] Platform tunnel access for the account, tunnel created and scoped to the ChatGPT workspace.
 - [ ] `t3mcp-tunnel.service` running against the real control plane, with `/readyz` 200.
 - [ ] ChatGPT accepts **Connection: Tunnel** + **No authentication** for a server that

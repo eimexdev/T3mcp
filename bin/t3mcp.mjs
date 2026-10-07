@@ -275,17 +275,19 @@ async function cmdValidateLifecycle(argv) {
   const t3Url = t3UrlFrom(values);
   const ledger = new LaunchLedger(paths.launchLedgerFile);
   const modelSelection = values["model-json"] ? JSON.parse(values["model-json"]) : undefined;
+  const authorization = loadAuthorizationHeader(paths);
   const run = (mcpUrl, headers) => validateLifecycle({ mcpUrl, headers, ledger, modelSelection, log });
   const report = values["via-dev-proxy"]
     ? await withDevProxy(
         {
           tunnelClientBin: paths.tunnelClientBin,
           t3McpUrl: mcpUrlFor(t3Url),
-          t3AuthorizationFile: (loadAuthorizationHeader(paths), paths.t3AuthorizationFile),
+          t3AuthorizationFile: paths.t3AuthorizationFile,
         },
+        // tunnel-client injects the credential; send none from here.
         (url) => run(url, {}),
       )
-    : await run(mcpUrlFor(t3Url), { authorization: loadAuthorizationHeader(paths) });
+    : await run(mcpUrlFor(t3Url), { authorization });
   process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
   if (!report.ok) process.exitCode = 1;
 }
