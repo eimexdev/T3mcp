@@ -1,5 +1,14 @@
 # T3mcp
 
+> [!WARNING]
+> **Deprecated and archived.** T3 Code now supports this first-party. Since
+> [pingdotgg/t3code#16718](https://github.com/pingdotgg/t3code/pull/16718)
+> (first shipped in `v0.0.46-nightly.20261007.2761`), T3's MCP OAuth accepts HTTPS
+> redirects, so ChatGPT and other hosted agents can sign in to T3's `/mcp` directly
+> and you no longer need a tunnel-client or an injected credential. Use that
+> instead. This repository is kept read-only for reference. To remove an existing
+> install, see [Uninstall](docs/operations.md#uninstall).
+
 Drive [T3 Code](https://github.com/pingdotgg/t3code) on your own machine from
 ChatGPT, including Dots. You can list projects, launch coding threads, wait for and
 read their results, send follow-ups, and interrupt runs. The work runs and stays in

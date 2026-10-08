@@ -1,5 +1,8 @@
 # Setup
 
+> **Deprecated.** T3 Code now supports ChatGPT sign-in to its MCP server directly;
+> see the [README](../README.md). Kept for reference only.
+
 Connect ChatGPT to T3 Code on this machine. Steps marked **User** happen in the
 ChatGPT or OpenAI Platform UI.
 
